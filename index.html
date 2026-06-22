@@ -2,15 +2,91 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/src/assets/vite.svg" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="shortcut icon" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Valentine — Music Player</title>
+    <meta name="theme-color" content="#0b0b0c" />
+
+    <!-- Primary Meta Tags -->
+    <title>Valentine — Reproductor de Música Nativo para macOS Tahoe 26</title>
+    <meta name="title" content="Valentine — Reproductor de Música Nativo para macOS Tahoe 26" />
+    <meta name="description" content="Valentine redefine la experiencia musical en macOS. Interfaz orgánica de cristal líquido, letras sincronizadas, soporte FLAC Hi-Fi y visualizador de ondas procedural. Nativo, fluido y premium." />
+    <meta name="keywords" content="Valentine, reproductor de música, macOS, Tahoe 26, FLAC, Hi-Fi, cristal líquido, glassmorphism, letras sincronizadas, visualizador, código abierto, GPL, Homebrew, app nativa" />
+    <meta name="author" content="Valentine Project" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="Spanish" />
+    <meta name="application-name" content="Valentine" />
+    <meta name="apple-mobile-web-app-title" content="Valentine" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="color-scheme" content="dark light" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://valentine.app/" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://valentine.app/" />
+    <meta property="og:title" content="Valentine — Esculpido en Cristal Líquido" />
+    <meta property="og:description" content="Reproductor de música nativo para macOS Tahoe 26+. Una interfaz orgánica que respira y se transforma al ritmo de tus canciones favoritas. Soporte FLAC Hi-Fi, letras sincronizadas y visualizador procedural." />
+    <meta property="og:image" content="https://valentine.app/logo.png" />
+    <meta property="og:image:alt" content="Logo de Valentine — corazón con nota musical sobre gradiente rosa y púrpura" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:site_name" content="Valentine" />
+    <meta property="og:locale" content="es_ES" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://valentine.app/" />
+    <meta name="twitter:title" content="Valentine — Esculpido en Cristal Líquido" />
+    <meta name="twitter:description" content="Reproductor de música nativo para macOS Tahoe 26+. Cristal líquido, FLAC Hi-Fi, letras sincronizadas y visualizador procedural." />
+    <meta name="twitter:image" content="https://valentine.app/logo.png" />
+    <meta name="twitter:image:alt" content="Logo de Valentine" />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Structured Data: SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Valentine",
+      "applicationCategory": "MusicApplication",
+      "operatingSystem": "macOS Tahoe 26+",
+      "description": "Reproductor de música nativo para macOS con interfaz de cristal líquido, letras sincronizadas, soporte FLAC Hi-Fi y visualizador de ondas procedural.",
+      "url": "https://valentine.app/",
+      "image": "https://valentine.app/logo.png",
+      "logo": "https://valentine.app/logo.png",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Interfaz de cristal líquido con glassmorphism",
+        "Letras sincronizadas en tiempo real",
+        "Soporte FLAC y Hi-Fi",
+        "Visualizador de ondas procedural",
+        "Arrastrar y soltar archivos de audio",
+        "Código abierto (GPL-3.0)"
+      ],
+      "author": {
+        "@type": "Organization",
+        "name": "Valentine Project",
+        "url": "https://github.com/JesusChapman/valentine"
+      },
+      "license": "https://www.gnu.org/licenses/gpl-3.0.html"
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>Valentine es un reproductor de música nativo para macOS Tahoe 26+. Necesitas JavaScript habilitado para ver la demo interactiva.</noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -1,19 +1,34 @@
 // App.jsx
-import React, { useState, useEffect } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { useInView } from 'framer-motion';
-import { 
-  Heart, Download, Globe, Code, Copy, Check, Play, ChevronRight, 
-  Music, Layers, Mic, Sliders, FolderOpen, Home, Sparkles, 
-  Terminal, Star, Zap, Shield, ExternalLink
+import {
+  Heart, Download, Copy, Check, Play, ChevronRight,
+  Layers, Mic, Sliders, FolderOpen, Home, Sparkles,
+  Zap, ExternalLink
 } from 'lucide-react';
 import InteractivePlayer from './components/InteractivePlayer';
 import InteractiveNebula from './components/InteractiveNebula';
+import logo from './assets/logo.png';
 
-// Reusable scroll-animated wrapper (animates on BOTH scroll up and down)
-function AnimatedSection({ children, className, style, id, delay = 0 }) {
-  const ref = React.useRef(null);
-  const isInView = useInView(ref, { margin: "-80px", once: false }); // once: false = animates both ways!
+// Easing curve reused across the page for a consistent, elegant feel
+const EASE = [0.16, 1, 0.3, 1];
+
+// Offset per direction so elements appear from the correct side.
+// Animations re-trigger on BOTH scroll up and down (once: false).
+const DIRECTION_OFFSET = {
+  up:    { x: 0,   y: 60  },
+  down:  { x: 0,   y: -60 },
+  left:  { x: 90,  y: 0   },
+  right: { x: -90, y: 0   },
+};
+
+// Reusable scroll-animated wrapper.
+// `from` controls where the element enters from (up/down/left/right).
+function AnimatedSection({ children, className, style, id, delay = 0, from = 'up' }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { margin: '-12% 0px -12% 0px', once: false });
+  const offset = DIRECTION_OFFSET[from] || DIRECTION_OFFSET.up;
 
   return (
     <motion.div
@@ -21,56 +36,83 @@ function AnimatedSection({ children, className, style, id, delay = 0 }) {
       id={id}
       className={className}
       style={style}
-      initial={{ opacity: 0, y: 50 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-      transition={{ 
-        duration: 0.7, 
-        ease: [0.16, 1, 0.3, 1],
-        delay 
-      }}
+      initial={{ opacity: 0, x: offset.x, y: offset.y, filter: 'blur(8px)' }}
+      animate={
+        isInView
+          ? { opacity: 1, x: 0, y: 0, filter: 'blur(0px)' }
+          : { opacity: 0, x: offset.x, y: offset.y, filter: 'blur(8px)' }
+      }
+      transition={{ duration: 0.8, ease: EASE, delay }}
     >
       {children}
     </motion.div>
   );
 }
 
-// Reusable stagger container that re-triggers
-function StaggerGrid({ children, className }) {
-  const ref = React.useRef(null);
-  const isInView = useInView(ref, { margin: "-60px", once: false });
+// Stagger container where each child can declare its own entry direction.
+// `<motion.div variants={makeCardVariant('left')} />` etc.
+function StaggerGrid({ children, className, from = 'up' }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { margin: '-10% 0px -10% 0px', once: false });
 
   return (
     <motion.div
       ref={ref}
       className={className}
       initial="hidden"
-      animate={isInView ? "visible" : "hidden"}
+      animate={isInView ? 'visible' : 'hidden'}
       variants={{
         hidden: { opacity: 0 },
         visible: {
           opacity: 1,
-          transition: { staggerChildren: 0.12 }
-        }
+          transition: { staggerChildren: 0.12, delayChildren: 0.05 },
+        },
       }}
+      data-stagger-from={from}
     >
       {children}
     </motion.div>
   );
 }
 
-const cardVariant = {
-  hidden: { opacity: 0, y: 40, scale: 0.97 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    scale: 1,
-    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] }
-  }
-};
+// Build a card variant for a given direction (used inside a StaggerGrid).
+function makeCardVariant(from) {
+  const o = DIRECTION_OFFSET[from] || DIRECTION_OFFSET.up;
+  return {
+    hidden: { opacity: 0, x: o.x * 0.6, y: o.y * 0.6, scale: 0.96, filter: 'blur(6px)' },
+    visible: {
+      opacity: 1, x: 0, y: 0, scale: 1, filter: 'blur(0px)',
+      transition: { duration: 0.7, ease: EASE },
+    },
+  };
+}
+
+// Direction-aware motion card; default direction cycles for visual rhythm.
+function MotionCard({ children, className, from = 'up', ...rest }) {
+  return (
+    <motion.div className={className} variants={makeCardVariant(from)} {...rest}>
+      {children}
+    </motion.div>
+  );
+}
 
 function App() {
   const [copied, setCopied] = useState(false);
   const [activeNav, setActiveNav] = useState('home');
+
+  // Subtle parallax on the hero mockup tied to page scroll.
+  const heroRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  });
+  const mockupY = useSpring(useTransform(scrollYProgress, [0, 1], [0, 120]), {
+    stiffness: 80,
+    damping: 20,
+    mass: 0.4,
+  });
+  const mockupScale = useTransform(scrollYProgress, [0, 1], [1, 0.94]);
+  const mockupOpacity = useTransform(scrollYProgress, [0, 0.85], [1, 0.25]);
 
   const copyBrewCommand = () => {
     navigator.clipboard.writeText('brew install --cask valentine');
@@ -90,7 +132,7 @@ function App() {
   useEffect(() => {
     const sections = ['home', 'features', 'stats', 'demo', 'download'];
     const handleScroll = () => {
-      for (const id of sections.reverse()) {
+      for (const id of [...sections].reverse()) {
         const el = document.getElementById(id);
         if (el) {
           const rect = el.getBoundingClientRect();
@@ -110,7 +152,7 @@ function App() {
       {/* Fixed Side Navigation */}
       <nav className="side-nav">
         <div className="side-nav-logo" onClick={() => scrollToSection('home')}>
-          <Heart size={20} fill="white" color="white" />
+          <img src={logo} alt="Valentine" className="side-nav-logo-img" />
         </div>
 
         <button className={`side-nav-item ${activeNav === 'home' ? 'active' : ''}`} onClick={() => scrollToSection('home')}>
@@ -153,7 +195,7 @@ function App() {
         <header className="landing-navbar">
           <div className="navbar-content">
             <a href="#" className="navbar-brand" onClick={(e) => { e.preventDefault(); scrollToSection('home'); }}>
-              <Heart size={20} fill="#ec4899" color="#ec4899" />
+              <img src={logo} alt="Valentine" className="brand-logo" />
               Valentine
             </a>
             <nav className="navbar-links">
@@ -169,28 +211,32 @@ function App() {
         </header>
 
         {/* ===== HERO SECTION (Dark) ===== */}
-        <section id="home" className="hero-section" style={{ position: 'relative', overflow: 'hidden' }}>
+        <section ref={heroRef} id="home" className="hero-section" style={{ position: 'relative', overflow: 'hidden' }}>
           {/* Interactive Nebula Background */}
           <div className="nebula-container">
             <InteractiveNebula />
           </div>
-          <AnimatedSection>
+          <AnimatedSection from="up">
+            <img src={logo} alt="Valentine — reproductor de música para macOS" className="hero-logo" />
+          </AnimatedSection>
+
+          <AnimatedSection from="up">
             <span className="hero-tagline">Reproductor Nativo para macOS Tahoe 26+</span>
           </AnimatedSection>
           
-          <AnimatedSection delay={0.1}>
+          <AnimatedSection from="up" delay={0.1}>
             <h1 className="hero-title">
               Esculpido en<br />Cristal Líquido.
             </h1>
           </AnimatedSection>
 
-          <AnimatedSection delay={0.15}>
+          <AnimatedSection from="up" delay={0.15}>
             <p className="hero-description">
               Valentine redefine la experiencia musical en macOS. Una interfaz orgánica que respira y se transforma al ritmo de tus canciones favoritas.
             </p>
           </AnimatedSection>
 
-          <AnimatedSection delay={0.2}>
+          <AnimatedSection from="up" delay={0.2}>
             <div className="hero-actions">
               <button className="btn-apple btn-apple-primary" onClick={() => scrollToSection('demo')}>
                 Probar Demo Online
@@ -203,21 +249,24 @@ function App() {
             </div>
           </AnimatedSection>
 
-          {/* Floating Perspective Mockup */}
-          <AnimatedSection delay={0.3}>
-            <div className="hero-mockup-wrapper">
+          {/* Floating Perspective Mockup with scroll-driven parallax */}
+          <AnimatedSection from="up" delay={0.3}>
+            <motion.div
+              className="hero-mockup-wrapper"
+              style={{ y: mockupY, scale: mockupScale, opacity: mockupOpacity }}
+            >
               <div className="hero-mockup-glow" />
               <div className="hero-mockup">
                 <InteractivePlayer />
               </div>
-            </div>
+            </motion.div>
           </AnimatedSection>
         </section>
 
         {/* ===== FEATURES BENTO GRID (White Section) ===== */}
         <section id="features" className="bento-section section-light">
           <div className="bento-inner">
-            <AnimatedSection>
+            <AnimatedSection from="up">
               <div className="section-header">
                 <p className="section-tagline">Detalles que marcan la diferencia</p>
                 <h2 className="section-title">Diseñado con obsesión.</h2>
@@ -225,9 +274,9 @@ function App() {
               </div>
             </AnimatedSection>
 
-            <StaggerGrid className="bento-grid">
+            <StaggerGrid className="bento-grid" from="up">
               {/* Card 1: Liquid Glass */}
-              <motion.div className="bento-card" variants={cardVariant}>
+              <MotionCard className="bento-card" from="left">
                 <div className="bento-icon-box">
                   <Layers size={22} />
                 </div>
@@ -236,10 +285,10 @@ function App() {
                   Una interfaz translúcida basada en glassmorphism profundo que extrae tonalidades dinámicas de la carátula activa para un fondo vibrante y envolvente.
                 </p>
                 <div className="bento-graphic-glass" />
-              </motion.div>
+              </MotionCard>
 
               {/* Card 2: Synced Lyrics */}
-              <motion.div className="bento-card bento-large" variants={cardVariant}>
+              <MotionCard className="bento-card bento-large" from="right">
                 <div className="bento-icon-box">
                   <Mic size={22} />
                 </div>
@@ -252,10 +301,10 @@ function App() {
                   <div className="bento-lyric-item highlight">You should have looked for another job</div>
                   <div className="bento-lyric-item">You should have said to this place goodbye...</div>
                 </div>
-              </motion.div>
+              </MotionCard>
 
               {/* Card 3: Drag & Drop */}
-              <motion.div className="bento-card bento-tall" variants={cardVariant}>
+              <MotionCard className="bento-card bento-tall" from="left">
                 <div>
                   <div className="bento-icon-box">
                     <FolderOpen size={22} />
@@ -269,10 +318,10 @@ function App() {
                   <Download size={28} style={{ display: 'inline-block', color: '#ec4899', marginBottom: '8px' }} />
                   <div style={{ fontSize: '14px', color: '#86868b', fontWeight: 500 }}>Arrastra archivos de audio aquí</div>
                 </div>
-              </motion.div>
+              </MotionCard>
 
               {/* Card 4: Waveform visualizer */}
-              <motion.div className="bento-card bento-large" variants={cardVariant}>
+              <MotionCard className="bento-card bento-large" from="right">
                 <div className="bento-icon-box">
                   <Sliders size={22} />
                 </div>
@@ -294,7 +343,7 @@ function App() {
                     />
                   ))}
                 </div>
-              </motion.div>
+              </MotionCard>
             </StaggerGrid>
           </div>
         </section>
@@ -302,25 +351,25 @@ function App() {
         {/* ===== STATS BANNER (White) ===== */}
         <section id="stats" className="stats-banner">
           <div className="stats-inner">
-            <AnimatedSection delay={0}>
+            <AnimatedSection from="left" delay={0}>
               <div className="stat-card">
                 <div className="stat-number">100%</div>
                 <div className="stat-label">Nativo para macOS</div>
               </div>
             </AnimatedSection>
-            <AnimatedSection delay={0.1}>
+            <AnimatedSection from="up" delay={0.1}>
               <div className="stat-card">
                 <div className="stat-number">0ms</div>
                 <div className="stat-label">Latencia de audio</div>
               </div>
             </AnimatedSection>
-            <AnimatedSection delay={0.2}>
+            <AnimatedSection from="up" delay={0.2}>
               <div className="stat-card">
                 <div className="stat-number">FLAC</div>
                 <div className="stat-label">Soporte Hi-Fi completo</div>
               </div>
             </AnimatedSection>
-            <AnimatedSection delay={0.3}>
+            <AnimatedSection from="right" delay={0.3}>
               <div className="stat-card">
                 <div className="stat-number">GPL-3</div>
                 <div className="stat-label">Código abierto</div>
@@ -331,7 +380,7 @@ function App() {
 
         {/* ===== LIVE DEMO SECTION (Dark) ===== */}
         <section id="demo" className="demo-section">
-          <AnimatedSection>
+          <AnimatedSection from="up">
             <div className="section-header" style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto' }}>
               <p className="section-tagline">Prueba de Producto</p>
               <h2 className="section-title" style={{ color: '#ffffff' }}>Pruébalo en vivo<br />ahora mismo.</h2>
@@ -341,7 +390,7 @@ function App() {
             </div>
           </AnimatedSection>
 
-          <AnimatedSection delay={0.2}>
+          <AnimatedSection from="up" delay={0.2}>
             <div className="demo-player-container">
               <InteractivePlayer />
             </div>
@@ -350,7 +399,7 @@ function App() {
 
         {/* ===== DOWNLOAD CTA (Gradient Section) ===== */}
         <section id="download" className="download-section">
-          <AnimatedSection>
+          <AnimatedSection from="up">
             <p className="section-tagline">Instalación nativa</p>
             <h2 className="section-title" style={{ fontSize: '56px', marginBottom: '20px' }}>Llévalo a tu Mac.</h2>
             <p style={{ fontSize: '20px', color: 'rgba(255,255,255,0.65)', maxWidth: '560px', margin: '0 auto 40px auto', lineHeight: '1.5' }}>
@@ -359,7 +408,7 @@ function App() {
           </AnimatedSection>
 
           {/* Brew command box */}
-          <AnimatedSection delay={0.15}>
+          <AnimatedSection from="left" delay={0.15}>
             <div className="terminal-box">
               <span className="terminal-prompt">$</span>
               <span className="terminal-command">brew install --cask valentine</span>
@@ -370,7 +419,7 @@ function App() {
             </div>
           </AnimatedSection>
 
-          <AnimatedSection delay={0.25}>
+          <AnimatedSection from="right" delay={0.25}>
             <div style={{ marginTop: '32px', display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button className="btn-apple btn-apple-primary" onClick={() => alert("Descargando Valentine.dmg para macOS...")}>
                 <Download size={16} style={{ display: 'inline-block', marginRight: '8px', verticalAlign: 'middle' }} />
@@ -387,8 +436,14 @@ function App() {
         {/* Apple-style Footer */}
         <footer className="apple-footer">
           <div className="footer-content">
-            <div className="footer-grid">
-              <div>
+            <AnimatedSection from="left">
+              <div className="footer-brand">
+                <img src={logo} alt="Valentine" className="brand-logo" style={{ width: 36, height: 36 }} />
+                <span className="footer-brand-name">Valentine</span>
+              </div>
+            </AnimatedSection>
+            <StaggerGrid className="footer-grid">
+              <MotionCard className="footer-col">
                 <h4 className="footer-col-title">Producto</h4>
                 <ul className="footer-links">
                   <li><a href="#" className="footer-link" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }}>Características</a></li>
@@ -396,8 +451,8 @@ function App() {
                   <li><a href="#" className="footer-link">Homebrew Cask</a></li>
                   <li><a href="#" className="footer-link" onClick={(e) => { e.preventDefault(); scrollToSection('download'); }}>Descargas</a></li>
                 </ul>
-              </div>
-              <div>
+              </MotionCard>
+              <MotionCard className="footer-col">
                 <h4 className="footer-col-title">Desarrolladores</h4>
                 <ul className="footer-links">
                   <li><a href="https://github.com/JesusChapman/valentine" target="_blank" rel="noreferrer" className="footer-link">GitHub Repository</a></li>
@@ -405,33 +460,35 @@ function App() {
                   <li><a href="#" className="footer-link">API de Waveform</a></li>
                   <li><a href="#" className="footer-link">Contribuir</a></li>
                 </ul>
-              </div>
-              <div>
+              </MotionCard>
+              <MotionCard className="footer-col">
                 <h4 className="footer-col-title">Comunidad</h4>
                 <ul className="footer-links">
                   <li><a href="#" className="footer-link">Reddit</a></li>
                   <li><a href="#" className="footer-link">Discord Server</a></li>
                   <li><a href="#" className="footer-link">Soporte</a></li>
                 </ul>
-              </div>
-              <div>
+              </MotionCard>
+              <MotionCard className="footer-col">
                 <h4 className="footer-col-title">Compañía</h4>
                 <ul className="footer-links">
                   <li><a href="#" className="footer-link">Sobre Nosotros</a></li>
                   <li><a href="#" className="footer-link">Blog</a></li>
                   <li><a href="#" className="footer-link">Prensa</a></li>
                 </ul>
-              </div>
-            </div>
+              </MotionCard>
+            </StaggerGrid>
 
-            <div className="footer-bottom">
-              <div>Copyright © 2026 Valentine Project. Todos los derechos reservados.</div>
-              <div className="footer-legal">
-                <a href="#" className="footer-link">Privacidad</a>
-                <a href="#" className="footer-link">Términos</a>
-                <a href="#" className="footer-link">Cookies</a>
+            <AnimatedSection from="up" className="footer-bottom-wrapper">
+              <div className="footer-bottom">
+                <div>Copyright © 2026 Valentine Project. Todos los derechos reservados.</div>
+                <div className="footer-legal">
+                  <a href="#" className="footer-link">Privacidad</a>
+                  <a href="#" className="footer-link">Términos</a>
+                  <a href="#" className="footer-link">Cookies</a>
+                </div>
               </div>
-            </div>
+            </AnimatedSection>
           </div>
         </footer>
       </div>
